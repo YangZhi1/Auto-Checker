@@ -1,0 +1,4 @@
+verilog work "C:/Users/ymf_m/Documents/mojo/AutoFPGATest/work/planAhead/AutoFPGATest/AutoFPGATest.srcs/sources_1/imports/verilog/edge_detector_3.v"
+verilog work "C:/Users/ymf_m/Documents/mojo/AutoFPGATest/work/planAhead/AutoFPGATest/AutoFPGATest.srcs/sources_1/imports/verilog/reset_conditioner_1.v"
+verilog work "C:/Users/ymf_m/Documents/mojo/AutoFPGATest/work/planAhead/AutoFPGATest/AutoFPGATest.srcs/sources_1/imports/verilog/fsmauto_2.v"
+verilog work "C:/Users/ymf_m/Documents/mojo/AutoFPGATest/work/planAhead/AutoFPGATest/AutoFPGATest.srcs/sources_1/imports/verilog/mojo_top_0.v"

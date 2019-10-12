@@ -1,0 +1,163 @@
+module fsmauto (
+    input clk,     // clock
+    input rst,     // reset
+    output aa, // output to mojo A, B, Carry In
+    output bb,
+    output carryin,
+    input sum,     // draw in input from sum to check
+    input carryout, // draw in input from carry out to check
+    output wrongInput // 1/0, where 1 means got wrong input, 0 means input aligns with our output
+    
+  ) {
+  .clk(clk){
+    edge_detector edge_detector(#RISE(1), #FALL(0)); //edge_detector to detect when counter[27] changes from 1 to 0/vice versa
+    .rst(rst){
+  // States will follow truth table, so they are not in "alphabetical" order
+    fsm state = {NOTHING, A, B, C, AB, AC, BC, ABC, WRONG};
+  
+  // blink time is 2^27 / 100,000,000, which is approximately 1.34217728 seconds
+  // referenced from: https://alchitry.com/blogs/tutorials/synchronous-logic-1
+    dff counter[28];
+    }
+  }
+
+  always {
+    aa = 0;  // set all A, B, carryIn to nothing first
+    bb = 0;
+    carryin = 0;
+    wrongInput = 0; // instantiate wrongInput to be 0 (false)
+    counter.d = counter.q + 1; // for each clock cycle, add 1 bit to dff
+    edge_detector.in = counter.q[26];
+    
+    case (state.q){
+    
+      // Start state, nothing will light up
+      state.NOTHING:
+        aa = 0;
+        bb = 0;
+        carryin = 0;
+        
+        // read from 28 bits dff, if the most significant bit is 1, we go to next state
+        if(edge_detector.out){
+          // only upon right input do we move to the next correct state
+          if(sum == 0 && carryout == 0){
+          // from 000 go to 001
+          state.d = state.C;
+          }
+          else{
+          // if not, we got wrong input and we will go into wrong input state
+          state.d = state.WRONG;
+          }
+        }
+     
+      // State A is 100, and state after that is AC 101
+      state.A:
+        aa = 1;
+        bb = 0;
+        carryin = 0;
+        if(edge_detector.out){
+          if(sum == 1){
+            state.d = state.AC;
+          }
+          else{
+            state.d = state.WRONG;
+          }
+        }
+      
+      // State B is 010, next state is BC 011
+      state.B:
+        aa = 0;
+        bb = 1;
+        carryin = 0;
+        if(edge_detector.out){
+          if(sum == 1){
+            state.d = state.BC;
+          }
+          else{
+            state.d = state.WRONG;
+          }
+        }
+      
+      // State C is 001, next state is B 010
+      state.C:
+        aa = 0;
+        bb = 0;
+        carryin = 1;
+        if(edge_detector.out){
+          if(sum == 1){
+            state.d = state.B;
+          }
+          else{
+            state.d = state.WRONG;
+          }
+        }
+        
+      // State AB is 110, next state is ABC 111 
+      state.AB:
+        aa = 1;
+        bb = 1;
+        carryin = 0;
+        if(edge_detector.out){
+          if(carryout == 1){
+            state.d = state.ABC;
+          }
+          else{
+            state.d = state.WRONG;
+          }
+        }
+      
+      // State AC is 101, next state is State AB 110    
+      state.AC:
+        aa = 1;
+        bb = 0;
+        carryin = 1;
+        if(edge_detector.out){
+          if(carryout == 1){
+            state.d = state.AB;
+          }
+          else{
+            state.d = state.WRONG;
+          }
+        }
+      
+      // State BC is 011, next state is A 100  
+      state.BC:
+        aa = 0;
+        bb = 1;
+        carryin = 1;
+        if(edge_detector.out){
+          if(carryout == 1){
+            state.d = state.A;
+          }
+          else{
+            state.d = state.WRONG;
+          }
+        }
+      
+      // State ABC is 111, next state is NOTHING 000
+      state.ABC:
+        aa = 1;
+        bb = 1;
+        carryin = 1;
+        if(edge_detector.out){
+          if(sum == 1 && carryout == 1){
+            state.d = state.NOTHING;
+          }
+          else{
+            state.d = state.WRONG;
+          }
+        }
+        
+        
+      state.WRONG:
+        // since wrongInput is 1/0 value, we can use it like true/false and check it in mojo_top then see if we in the wrong state
+        // cause if we in wrong state we will be blinking the io_leds a lot
+        wrongInput = 1;
+        // make the leds blink fast
+        aa = counter.q[24];
+        bb = counter.q[24];
+        carryin = counter.q[24];
+    }
+    
+  }
+}
